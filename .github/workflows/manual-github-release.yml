@@ -1,0 +1,8 @@
+name: Manual Github Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  manual-release:
+    uses:  ./.github/workflows/workflowcall-github-release.yml

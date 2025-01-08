@@ -1,0 +1,68 @@
+name: Workflow Call Github Tag and Release Automation
+
+on:
+  workflow_call
+  # pull_request:
+  #   types:
+  #     - closed
+  #   branches:
+  #     - main
+
+jobs:
+  tag-and-release:
+    # if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.SMG_GITHUB_PACKAGE_WRITE_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches and tags
+      
+      - name: Extract version from pyproject.toml
+        id: check_version
+        run: |
+          LOCAL_VERSION=$(grep '^version =' ./pyproject.toml | sed -E 's/version = "([^"]+)"/\1/')
+          echo "LOCAL_VERSION=$LOCAL_VERSION" >> $GITHUB_ENV
+
+      - name: Compare with latest tag
+        id: validate_version
+        run: |
+          GIT_VERSION=$(git describe --tags --abbrev=0 || echo "0.0.0")
+          GIT_VERSION=${GIT_VERSION#v}
+          echo "GIT_VERSION=$GIT_VERSION" >> $GITHUB_ENV
+          echo "Extracted version: $GIT_VERSION"
+
+        env:
+          LOCAL_VERSION: ${{ env.LOCAL_VERSION }}
+
+      - name: Version Echos
+        run: |
+          echo "Github latest tag: $GIT_VERSION"
+          echo "pyproject.toml local file version: $LOCAL_VERSION"
+      
+      - name: Change Logs + Release
+        id: release_drafter
+        if: ${{ env.LOCAL_VERSION > env.GIT_VERSION }}
+        uses: release-drafter/release-drafter@master
+        with:
+          publish: true
+          version: ${{ env.LOCAL_VERSION }} # this bypasses the release-drafter config
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Github released the latest changes 
+        id: release_echos
+        if: ${{ env.LOCAL_VERSION > env.GIT_VERSION }}
+        run: |
+          echo "Release tag: ${{ steps.release_drafter.outputs.name }}"
+          echo "Release changelogs body: ${{ steps.release_drafter.outputs.body }}"
+
+      - name: Github did not release the latest changes 
+        id: non_release_echos
+        if: ${{ env.LOCAL_VERSION <= env.GIT_VERSION }}
+        run: |
+          echo "The pyproject.toml version ($LOCAL_VERSION) is the same or lower than the latest tag ($GIT_VERSION)."
+          echo "Github did not release the latest code changes because the version is the same or lower than the latest tag."

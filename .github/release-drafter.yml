@@ -1,0 +1,69 @@
+# Stored in .github/ directory
+
+
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+      - 'new'
+      - 'breaking'
+      - 'minor'
+      - 'major'
+      - 'feat'
+
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'bugfix'
+      - 'fix'
+      - 'bug'
+
+  - title: '🧰 Maintenance'
+    labels: 
+      - 'chore'
+      - 'maintenance'
+      - 'refactor'
+      - 'cleanup'
+      - 'docs'
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking'
+  minor:
+    labels:
+      - 'minor'
+      - 'feature'
+      - 'enhancement'
+      - 'new'
+  patch:
+    labels:
+      - 'patch'
+      - 'security'
+      - 'dependencies'
+      - 'performance'
+      - 'revert'
+      - 'docs'
+      - 'documents'
+      - 'readme'
+      - 'maintenance'
+  default: minor
+
+
+exclude-labels:
+  - 'skip-changelog'
+
+template: |
+  # What's Changed
+
+  $CHANGES
+  $CONTRIBUTORS
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

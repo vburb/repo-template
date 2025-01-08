@@ -1,0 +1,76 @@
+name: Workflow Call Code Testing
+run-name: Pytest and MyPy testing by @${{ github.actor }} on branch ${{ github.Ref }}
+
+on:
+  workflow_call:
+    inputs:
+      PYTHON_VERSION:
+        description: 'Python version to use'
+        required: false
+        default: '3.11'
+        type: string
+    # secrets:
+    #   GITHUB_TOKEN:
+    #     required: true
+
+jobs:
+  build-test:
+    name: workflow-call-run-tests
+    runs-on: ubuntu-latest
+    steps:
+      #----------------------------------------------
+      #       check-out repo and set-up python
+      #----------------------------------------------
+    - name: 📀 Checkout GitHub Repo
+      uses: actions/checkout@v4
+
+    - name: 💻 Set up Git credentials
+      run: |
+        git config --global url."https://${{ secrets.SMG_GITHUB_PACKAGE_READ_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
+    - name: 🐍 Set up Python ${{ inputs.PYTHON_VERSION }}
+      id: setup-python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.PYTHON_VERSION }}
+
+      #----------------------------------------------
+      #  -----  install & configure poetry  -----
+      #----------------------------------------------
+    - name: ⬇️ Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true # false?
+        virtualenvs-in-project: true
+        installer-parallel: true
+
+      #----------------------------------------------
+      #       load cached venv if cache exists
+      #----------------------------------------------
+    - name: 📄 Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      #----------------------------------------------
+      # install dependencies if cache does not exist
+      #----------------------------------------------
+    - name: ⬇️ Install dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: |
+        poetry install --no-interaction --no-ansi --no-root
+
+      #----------------------------------------------
+      #              run test suite
+      #----------------------------------------------
+    - name: 🧪 Run Pytests
+      run: |
+        source .venv/bin/activate
+        poetry run pytest --cov=. --cov-report=term tests
+
+    - name: 🙏 Run mypy
+      run: |
+        source .venv/bin/activate
+        poetry run mypy . --ignore-missing-imports
